@@ -1,3 +1,21 @@
 version: 1
 send_anonymous_usage_stats: true
 project_id: 60140d5b-32f1-49b1-aa37-e7a48dd2ec43
+plugins:
+  extractors:
+  - name: tap-slack
+    namespace: tap_slack
+    pip_url: git+https://github.com/Mashey/tap-slack.git
+    executable: tap-slack
+    capabilities:
+    - catalog
+    - discover
+    - state
+    settings:
+    - name: token
+    - name: start_date
+      value: "2020-05-01T00:00:00"
+    - name: private_channels
+      value: true
+    - name: join_public_channels
+      value: true
