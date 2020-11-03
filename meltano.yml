@@ -22,4 +22,16 @@ plugins:
   loaders:
   - name: target-snowflake
     variant: meltano
-    pip_url: git+https://gitlab.com/meltano/target-snowflake.git
+    pip_url: git+https://gitlab.com/meltano/target-snowflake
+    config:
+      account: aq34540
+      database: COOPER_DB
+      warehouse: COOPER_XS_WH
+      role: SYSADMIN
+schedules:
+- name: slack-to-snowflake
+  extractor: tap-slack
+  loader: target-snowflake
+  transform: skip
+  interval: '@daily'
+  start_date: 2020-01-01 00:00:00
