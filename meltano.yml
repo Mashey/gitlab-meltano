@@ -19,6 +19,16 @@ plugins:
       value: true
     - name: join_public_channels
       value: true
+  - name: tap-zoom
+    namespace: tap_zoom
+    pip_url: git+https://github.com/Mashey/tap-zoom.git
+    executable: tap-zoom
+    capabilities:
+    - catalog
+    - discover
+    - state
+    settings:
+    - name: jwt
   loaders:
   - name: target-snowflake
     variant: meltano
@@ -28,6 +38,12 @@ plugins:
       database: COOPER_DB
       warehouse: COOPER_XS_WH
       role: SYSADMIN
+  orchestrators:
+  - name: airflow
+    pip_url: apache-airflow==1.10.12 --constraint https://raw.githubusercontent.com/apache/airflow/constraints-1.10.12/constraints-3.6.txt
+  files:
+  - name: airflow
+    pip_url: git+https://gitlab.com/meltano/files-airflow.git
 schedules:
 - name: slack-to-snowflake
   extractor: tap-slack
@@ -35,3 +51,9 @@ schedules:
   transform: skip
   interval: '@daily'
   start_date: 2020-01-01 00:00:00
+- name: zoom-to-snowflake
+  extractor: tap-zoom
+  loader: target-snowflake
+  transform: skip
+  interval: '@daily'
+  start_date: 2020-11-13 16:29:11.704468
