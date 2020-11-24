@@ -29,6 +29,10 @@ plugins:
     - state
     settings:
     - name: jwt
+  - name: tap-gmail
+    namespace: tap_gmail
+    pip_url: git+https://github.com/Mashey/tap-gmail.git
+    executable: tap-gmail
   loaders:
   - name: target-snowflake
     variant: meltano
@@ -57,3 +61,9 @@ schedules:
   transform: skip
   interval: '@daily'
   start_date: 2020-11-13 16:29:11.704468
+- name: gmail-to-snowflake
+  extractor: tap-gmail
+  loader: target-snowflake
+  transform: skip
+  interval: '@daily'
+  start_date: 2020-11-23 16:23:40.175338
