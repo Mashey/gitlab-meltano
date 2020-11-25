@@ -4,4 +4,4 @@ cd /projects
 
 meltano invoke airflow scheduler -D
 
-meltano ui
+meltano ui --bind-port=8080
