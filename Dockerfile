@@ -21,7 +21,8 @@ RUN cp -n .meltano/cache/discovery.yml . 2>/dev/null || :
 ENV MELTANO_PROJECT_READONLY 1
 
 # Expose default port used by `meltano ui`
-EXPOSE 5000
+ENV PORT 8080
+EXPOSE ${PORT}
 
 RUN chmod +x /projects/entrypoint.sh
-ENTRYPOINT ["/projects/entrypoint.sh", "--port", "5000"]
+ENTRYPOINT ["/projects/entrypoint.sh"]
