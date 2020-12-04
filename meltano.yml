@@ -44,7 +44,7 @@ plugins:
       role: SYSADMIN
   orchestrators:
   - name: airflow
-    pip_url: apache-airflow==1.10.12 --constraint https://raw.githubusercontent.com/apache/airflow/constraints-1.10.12/constraints-3.6.txt
+    pip_url: psycopg2 apache-airflow==1.10.12 --constraint https://raw.githubusercontent.com/apache/airflow/constraints-1.10.12/constraints-3.6.txt
   files:
   - name: airflow
     pip_url: git+https://gitlab.com/meltano/files-airflow.git
@@ -54,16 +54,16 @@ schedules:
   loader: target-snowflake
   transform: skip
   interval: '@daily'
-  start_date: 2020-01-01 00:00:00
+  start_date: 2020-11-01 00:00:00
 - name: zoom-to-snowflake
   extractor: tap-zoom
   loader: target-snowflake
   transform: skip
   interval: '@daily'
-  start_date: 2020-11-13 16:29:11.704468
+  start_date: 2020-11-13 00:00:00.000000
 - name: gmail-to-snowflake
   extractor: tap-gmail
   loader: target-snowflake
   transform: skip
   interval: '@daily'
-  start_date: 2020-11-23 16:23:40.175338
+  start_date: 2020-11-20 00:00:00.000000
