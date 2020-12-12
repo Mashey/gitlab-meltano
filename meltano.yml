@@ -14,7 +14,7 @@ plugins:
     settings:
     - name: token
     - name: start_date
-      value: '2020-05-01T00:00:00'
+      value: '2020-12-01T00:00:00'
     - name: private_channels
       value: true
     - name: join_public_channels
@@ -44,7 +44,7 @@ plugins:
       role: SYSADMIN
   orchestrators:
   - name: airflow
-    pip_url: psycopg2 apache-airflow==1.10.12 --constraint https://raw.githubusercontent.com/apache/airflow/constraints-1.10.12/constraints-3.6.txt
+    pip_url: psycopg2 apache-airflow==1.10.13 --constraint https://raw.githubusercontent.com/apache/airflow/constraints-1.10.13/constraints-3.8.txt
   files:
   - name: airflow
     pip_url: git+https://gitlab.com/meltano/files-airflow.git
@@ -54,16 +54,16 @@ schedules:
   loader: target-snowflake
   transform: skip
   interval: '@daily'
-  start_date: 2020-11-01 00:00:00
+  start_date: 2020-12-03
 - name: zoom-to-snowflake
   extractor: tap-zoom
   loader: target-snowflake
   transform: skip
   interval: '@daily'
-  start_date: 2020-11-13 00:00:00.000000
+  start_date: 2020-12-03
 - name: gmail-to-snowflake
   extractor: tap-gmail
   loader: target-snowflake
   transform: skip
   interval: '@daily'
-  start_date: 2020-11-20 00:00:00.000000
+  start_date: 2020-12-03
