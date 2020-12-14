@@ -104,7 +104,7 @@ To run the scheduler, run the following command
 meltano invoke airflow scheduler
 
 # With Docker
-docker run -v $(pwd):/projects -w /projects meltano/meltano:latest-python3.8
+docker run -v $(pwd):/projects -w /projects meltano/meltano:latest-python3.8 invoke airflow scheduler
 ```
 
 ---
