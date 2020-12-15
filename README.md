@@ -104,7 +104,7 @@ AIRFLOW__CORE__EXECUTOR="LocalExecutor"
 For local development, the easiest way to set these environment variables is to make a `.env` file with the necessary credentials in the root directory. The following environment variables can be ignored in the development environment:
 
 * `AIRFLOW__CORE__SQL_ALCHEMY_CONN`
-  * There is an internal SQLite database for development use
+  * There is an internal SQLite database included with Meltano for development use
 * `AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT`
   * Import timeout is not an issue on local systems
 * `AIRFLOW__CORE__EXECUTOR`
@@ -148,9 +148,9 @@ docker build --tag <IMAGE NAME>:<TAG NAME> .
 
 Documentation for building containers with Docker can be found [here](https://docs.docker.com/engine/reference/commandline/build/).
 
-## Google Cloud Platform
+## Google Cloud Platform Setup
 
-This section covers the necessary steps to create a GCP Production environment for the Meltano application. A GCP Project is a required, and it is reccomended that the [Google Cloud SDK](https://cloud.google.com/sdk/docs/quickstart) is installed. The following GCP APIs must be enabled:
+This section covers the necessary steps to create a GCP Production environment for the Meltano application. A GCP Project is a required, and it is reccomended that the [Google Cloud SDK](https://cloud.google.com/sdk/docs/quickstart) is installed in order to follow commands used in this guide. The following GCP APIs must be enabled:
 
 * Admin SDK
 * Kubernetes Engine
@@ -202,6 +202,58 @@ Enable the Container Registry API
 
 Container Registry will need to be authenticated in your local environment using the [Google Cloud SDK](https://cloud.google.com/sdk/docs/quickstart) to push and pull images. This can be ignored if Container Registry has been previously authenticated for other local projects.
 
-* [Authenticate Docker for gCloud](https://cloud.google.com/container-registry/docs/quickstart#auth)
+* [Authenticate Docker for Google Cloud SDK](https://cloud.google.com/container-registry/docs/quickstart#auth)
 
 Google Container Registry docs can be found [here](https://cloud.google.com/container-registry/docs/quickstart).
+
+### Kubernetes Engine
+
+Kubernetes Engine is used to deploy the production Meltano application. If there is an existing Kubernetes cluster that you would like to use for deploying Meltano skip the [Create a GKE Cluster](#create-a-gke-cluster) section.
+
+Enable the Kubernetes Engine API
+
+* [Kubernetes Engine](https://console.cloud.google.com/apis/library/container.googleapis.com)
+
+Kubernetes docs can be found [here](https://kubernetes.io/docs/home/).
+
+#### Install `kubectl` for Google Cloud SDK
+
+https://cloud.google.com/kubernetes-engine/docs/quickstart#choosing_a_shell
+
+Select `Local shell`, and then run the following command:
+
+`gcloud components install kubectl`
+
+#### Create a GKE Cluster
+
+https://cloud.google.com/kubernetes-engine/docs/quickstart#create_cluster
+
+`gcloud container clusters create cluster-name --num-nodes=1`
+
+Authenticate the Cluster
+
+`gcloud container clusters get-credentials cluster-name`
+
+### Connect from GKE to Cloud SQL
+
+Follow this guide, starting with Kubernetes Secrets:
+
+https://cloud.google.com/sql/docs/postgres/connect-kubernetes-engine#secrets
+
+The Kubernetes secret name used in `gitlab-app.yaml` for the Cloud SQL `username`, `password`, and `database` credentials is:
+
+* `airflow-db`
+* The keys are:
+  * `username`
+    * The user name for the Cloud SQL database created in [this section of the guide](#cloud-sql-and-cloud-sql-admin)
+  * `password`
+    * The password for the Cloud SQL database user created in [this section of the guide](#cloud-sql-and-cloud-sql-admin)
+  * `database`
+    * The database name for the Cloud SQL database created in [this section of the guide](#cloud-sql-and-cloud-sql-admin)
+
+### Create Kubernetes Secrets
+
+Steps
+## Deploy Meltano on Kubernetes
+
+Steps
