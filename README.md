@@ -303,9 +303,18 @@ All secrets must be created for the `gitlab` namespace
 
 ## Deploy Meltano to Kubernetes
 
-The `gitlab-app.yaml` Kubernetes deployment. To deploy run:
+Upload the Docker image to Container Registry.
+
+* Tag the image
+  * `docker tag img_name gcr.io/[PROJECT-ID]/img_name:tag1`
+* Push the image to Google Container Registry
+  * `docker push gcr.io/[PROJECT-ID]/img_name:tag1`
+
+The `gitlab-app.yaml` Kubernetes deployment file. To deploy run:
 
 `kubectl apply -f ./gitlab-app.yaml`
+
+Update the `gitlab-app.yaml` file as necessary before deploying.
 
 ```yaml
 apiVersion: apps/v1
