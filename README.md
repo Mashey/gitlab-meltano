@@ -246,7 +246,7 @@ The following guide section explains the process to create a service account key
 
 https://cloud.google.com/sql/docs/postgres/connect-kubernetes-engine#service-account-key-file
 
-* When creating Kubernetes secrets use the `--namespace` flag
+* When creating Kubernetes secrets use the `--namespace=gitlab` flag
 
 ```text
 # Example
