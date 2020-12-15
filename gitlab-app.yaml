@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-production
+  namespace: gitlab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      serviceAccount: k8s-sa
+      serviceAccountName: k8s-sa
+      containers:
+      - name: gitlab
+        image: gcr.io/gadmin-reports-294123/meltano-gitlab:production
+        imagePullPolicy: Always
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: airflow-db
+              key: username
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: airflow-db
+              key: password
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: airflow-db
+              key: database
+        - name: TAP_SLACK_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: tap_slack_token
+        - name: TAP_ZOOM_JWT
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: tap_zoom_jwt
+        - name: SF_USER
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: sf_user
+        - name: SF_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: sf_password
+        - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: airflow_conn
+        - name: ADMIN_SDK_KEY
+          valueFrom:
+            secretKeyRef:
+              name: admin-sdk
+              key: service_key
+        - name: AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT
+          value: "120"
+        - name: AIRFLOW__CORE__EXECUTOR
+          value: "LocalExecutor"
+      - name: cloud-sql-proxy
+        # It is recommended to use the latest version of the Cloud SQL proxy
+        # Make sure to update on a regular schedule!
+        image: gcr.io/cloudsql-docker/gce-proxy
+        command:
+          - "/cloud_sql_proxy"
+
+          # If connecting from a VPC-native GKE cluster, you can use the
+          # following flag to have the proxy connect over private IP
+          # - "-ip_address_types=PRIVATE"
+
+          # Replace DB_PORT with the port the proxy should listen on
+          # Defaults: MySQL: 3306, Postgres: 5432, SQLServer: 1433
+          - "-instances=gadmin-reports-294123:us-central1:gitlab=tcp:5432"
+
+          # This flag specifies where the service account key can be found
+          - "-credential_file=/secrets/service_account.json"
+        securityContext:
+          # The default Cloud SQL proxy image runs as the
+          # "nonroot" user and group (uid: 65532) by default.
+          runAsNonRoot: true
+        volumeMounts:
+        - name: k8s-sql-volume
+          mountPath: /secrets/
+          readOnly: true
+      volumes:
+      - name: k8s-sql-volume
+        secret:
+          secretName: cloud-sql
