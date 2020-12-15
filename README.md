@@ -19,21 +19,21 @@ Below is a guide on how to set up the Meltano project. Currently these are the t
 * [Tap Zoom](https://github.com/Mashey/tap-zoom)
 * [Target Snowflake](https://meltano.com/plugins/loaders/snowflake--meltano.html#snowflake-meltano-variant)
 
-Setup of these taps/targets must be completed before this Meltano project can be ran.
+Setup of these taps/targets must be completed before the Meltano project is launched.
 
 ## Gmail Setup
 
 Due to the current implementation of [tap-gmail](https://github.com/Mashey/tap-gmail) in which it is tailored to GitLab, fork this repository in order to ensure changes to this repository do not arise unexpectedly.
 
-The Google API Python Client documentation provides a guide for completing all necessary steps to ensure the application and environment are configured correclty. The guide can be found here:
+The Google API Python Client documentation provides a guide for completing all necessary steps to ensure the application and environment are configured correclty. A GCP project is required for the setup process, and it needs to be the same project used in the production deployment process. The guide can be found here:
 
 [Using OAuth 2.0 for Server to Server Applications](https://github.com/googleapis/google-api-python-client/blob/master/docs/oauth-server.md)
 
 The key steps in the guide are:
 
-* Creating a service account.
-* Delegating domain-wide authority to the service account.
-* Create and download a `json` [service account key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys) under the newly-created service account.
+* Create a service account
+* Delegate domain-wide authority to the service account
+* Create and download a `json` [service account key](https://cloud.google.com/iam/docs/creating-managing-service-account-keys#creating_service_account_keys) from the newly-created service account
 
 ## Slack Setup
 
@@ -91,13 +91,24 @@ SF_USER="<USER>"
 SF_PASSWORD="<PASSWORD>"
 
 TAP_SLACK_TOKEN="<SLACK VERIFICATION TOKEN>"
-
 TAP_ZOOM_JWT="<JWT KEY>"
 
+# The service account key created during the `Tap Gmail` setup for the Admin SDK
 ADMIN_SDK_KEY="/path/to/service_key.json"
+
+AIRFLOW__CORE__SQL_ALCHEMY_CONN="<postgresql://username:password@localhost:5432/mydatabase>"
+AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT="120"
+AIRFLOW__CORE__EXECUTOR="LocalExecutor"
 ```
 
-For local development, the easiest way to set these environment variables is to make a `.env` file with the necessary credentials in the root directory.
+For local development, the easiest way to set these environment variables is to make a `.env` file with the necessary credentials in the root directory. The following environment variables can be ignored in the development environment:
+
+* `AIRFLOW__CORE__SQL_ALCHEMY_CONN`
+  * There is an internal SQLite database for development use
+* `AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT`
+  * Import timeout is not an issue on local systems
+* `AIRFLOW__CORE__EXECUTOR`
+  * The default `SequentialExecutor` works with SQLite
 
 Once installed and the environment variables have been set up, you may run any command from the [Meltano CLI](https://meltano.com/docs/command-line-interface.html)
 
@@ -115,11 +126,15 @@ meltano invoke airflow scheduler
 docker run -v $(pwd):/projects -w /projects meltano/meltano:latest-python3.8 invoke airflow scheduler
 ```
 
-# Preparing Meltano for Production
+# Preparing a Production Environment for Meltano
 
-Below are the steps to get your Meltano project ready for production
+Below are the steps to get your Meltano project ready for a production environment. The production deployment instructions are for Google Cloud Platform using the Google Cloud SDK, and covers the following services:
 
----
+* Container Registry
+* Cloud SQL (Postgres)
+* Kubernetes Engine
+
+The deployment implements Kubernetes Secrets for sensative environment variables, as well as a .json key file that is used to authorize the Cloud SQL proxy in a Kubernetes sidecar setup.
 
 ## Dockerize the Project
 
@@ -130,3 +145,63 @@ To build the image, run the following command in the root directory:
 ```sh
 docker build --tag <IMAGE NAME>:<TAG NAME> .
 ```
+
+Documentation for building containers with Docker can be found [here](https://docs.docker.com/engine/reference/commandline/build/).
+
+## Google Cloud Platform
+
+This section covers the necessary steps to create a GCP Production environment for the Meltano application. A GCP Project is a required, and it is reccomended that the [Google Cloud SDK](https://cloud.google.com/sdk/docs/quickstart) is installed. The following GCP APIs must be enabled:
+
+* Admin SDK
+* Kubernetes Engine
+* Cloud SQL
+* Cloud SQL Admin
+* Container Registry
+* Additional API dependencies will be created as necessary by the services listed above
+  * This is typical behavior for GCP APIs
+
+### Admin SDK API  :: Reports API
+
+The Admin SDK API and Reports API should already be enabled from the [Gmail Setup](#gmail-setup) section of this guide. If it is not enabled, please return to [Gmail Setup](#gmail-setup) and complete the setup process.
+
+Admin SDK API and Reports API documentation can be found [here](https://developers.google.com/admin-sdk/reports/v1/get-start/getting-started).
+
+### Cloud SQL and Cloud SQL Admin
+
+The Cloud SQL and Cloud SQL Admin APIs are used to store Airflow metadata in the Meltano production environment.
+
+Enable the Cloud SQL API
+
+* [Cloud SQL API](https://console.cloud.google.com/apis/library/sql-component.googleapis.com).
+
+Enable the Cloud SQL Admin API
+
+* [Cloud SQL Admin API](https://console.cloud.google.com/apis/library/sqladmin.googleapis.com)
+
+Create a Cloud SQL (PostgreSQL 12) instance if one does not already exist.
+
+* [Cloud SQL + Postgres 12 Quickstart](https://cloud.google.com/sql/docs/postgres/quickstart)
+
+There are some things to keep track of from this setup that will be needed to customize the Kubernetes deployment file `gitlab-app.yaml`:
+
+* Cloud SQL instance name
+* The connection name of the Cloud SQL instance
+  * Example: `your-projectid-123456:region:instance-name`
+* The name of the database where the Airflow metadata will be stored
+  * The database name included in `gitlab-app.yaml` is `airflow-meta`
+  * A user name for the database
+    * The password of the user
+
+### Container Registry
+
+The Container Registry is used to store the Docker image that will be deployed in Kubernetes Engine. Artifact Registry can be used as an alternative, but the `gcloud sdk` commands in this guide will be for Container Registry.
+
+Enable the Container Registry API
+
+* [Google Container Registry API](https://console.cloud.google.com/apis/library/containerregistry.googleapis.com)
+
+Container Registry will need to be authenticated in your local environment using the [Google Cloud SDK](https://cloud.google.com/sdk/docs/quickstart) to push and pull images. This can be ignored if Container Registry has been previously authenticated for other local projects.
+
+* [Authenticate Docker for gCloud](https://cloud.google.com/container-registry/docs/quickstart#auth)
+
+Google Container Registry docs can be found [here](https://cloud.google.com/container-registry/docs/quickstart).
