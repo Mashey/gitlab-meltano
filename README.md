@@ -168,7 +168,7 @@ Admin SDK API and Reports API documentation can be found [here](https://develope
 
 ### Cloud SQL and Cloud SQL Admin
 
-The Cloud SQL and Cloud SQL Admin APIs are used to store Airflow metadata in the Meltano production environment.
+The Cloud SQL and Cloud SQL Admin APIs are used to store Airflow metadata in the Meltano production environment. The Cloud SQL Admin API is necessary in order to create a Cloud SQL Proxy within a Kubernetes [deployment](https://cloud.google.com/kubernetes-engine/docs/concepts/deployment).
 
 Enable the Cloud SQL API
 
@@ -236,14 +236,31 @@ Authenticate the Cluster
 
 ### Connect from GKE to Cloud SQL
 
-Follow this guide, starting with Kubernetes Secrets:
+The following guide section explains the process to create a service account key file and attach it to a Kubernetes secret, which will then be used by Cloud SQL Proxy for authentication:
 
-https://cloud.google.com/sql/docs/postgres/connect-kubernetes-engine#secrets
+https://cloud.google.com/sql/docs/postgres/connect-kubernetes-engine#service-account-key-file
 
-The Kubernetes secret name used in `gitlab-app.yaml` for the Cloud SQL `username`, `password`, and `database` credentials is:
+* When creating the Kubernetes secret use the `--namespace` flag
+
+```text
+kubectl create secret generic <YOUR-DB-SECRET> --namespace=gitlab \
+  --from-literal=username=<YOUR-DATABASE-USER> \
+  --from-literal=password=<YOUR-DATABASE-PASSWORD> \
+  --from-literal=database=<YOUR-DATABASE-NAME>
+```
+
+* Ensure that the service account you create (or use) has Cloud SQL Admin API IAM access and the Editor role
+* The `key.json` created for the service account will be saved as a Kubernetes secret
+  * The `key.json` file should be stored in a secure location in case it needs to be accessed in the future
+* The `gitlab-app.yaml` file stores the value of `key.json` to the environment variable `ADMIN_SDK_KEY`
+  * The Kubernetes secret name is `admin-sdk`
+    * The key is `service_key`
+      * The value associated with the above key is `key.json`
+
+The Kubernetes secret name used in `gitlab-app.yaml` for the Cloud SQL credentials is:
 
 * `airflow-db`
-* The keys are:
+* The key names within `airflow-db` are:
   * `username`
     * The user name for the Cloud SQL database created in [this section of the guide](#cloud-sql-and-cloud-sql-admin)
   * `password`
@@ -251,9 +268,146 @@ The Kubernetes secret name used in `gitlab-app.yaml` for the Cloud SQL `username
   * `database`
     * The database name for the Cloud SQL database created in [this section of the guide](#cloud-sql-and-cloud-sql-admin)
 
+The Cloud SQL Admin API should be enabled from [this section of the guide](#cloud-sql-and-cloud-sql-admin). If is not enabled, please proceed to [Connecting using the Cloud SQL Proxy](https://cloud.google.com/sql/docs/postgres/connect-kubernetes-engine#proxy) which explains why it is necessary to enable the Cloud SQL Admin API.
+
 ### Create Kubernetes Secrets
 
-Steps
-## Deploy Meltano on Kubernetes
+Create the other necessary Kubernetes [secrets](https://cloud.google.com/kubernetes-engine/docs/concepts/secret). If the secret names and keys that are created match what is in the `gitlab-app.yaml` file it minimizes the edits required to customize the deployment.
 
-Steps
+All secrets must be created for the `gitlab` namespace
+
+* Example
+  * `kubectl create secret generic my-secret-name --from-literal user=admin --namespace=gitlab`
+
+#### Create Additional Secrets
+
+* Secret Name
+  * `tap-secrets`
+* Keys
+  * `airflow_conn`
+    * `<postgresql://username:password@localhost:5432/mydatabase>`
+  * `sf_password`
+    * Snowflake instance password
+  * `sf_user`
+    * Snowflake instance user name
+  * `tap_slack_token`
+    * Slack authentication token
+  * `tap_zoom_jwt`
+    * Zoom JWT authentication token
+* Secret Name
+  * `admin-sdk`
+* Keys
+  * `service_key`
+    * The service account key created during the [Gmail Setup](#gmail-setup)
+
+
+## Deploy Meltano to Kubernetes
+
+The `gitlab-app.yaml` Kubernetes deployment. To deploy run:
+
+`kubectl apply -f ./gitlab-app.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-production  # Name of the deployment
+  namespace: gitlab  # Namespace of the deployment
+spec:
+  replicas: 1  # We recommend 1 replica
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      serviceAccount: k8s-sa  # Service account created in the section 'Connect From GKE to Cloud SQL'
+      serviceAccountName: k8s-sa  # Service account created in the section 'Connect From GKE to Cloud SQL'
+      containers:
+      - name: gitlab
+        image: gcr.io/<your-projectid-123456>/<image-name:image-tag>  #  The Gitlab-Meltano image
+        imagePullPolicy: Always
+        env:
+        - name: DB_USER  # Cloud SQL Postgres user name
+          valueFrom:
+            secretKeyRef:
+              name: airflow-db
+              key: username
+        - name: DB_PASS  # Cloud SQL Postgres password for user
+          valueFrom:
+            secretKeyRef:
+              name: airflow-db
+              key: password
+        - name: DB_NAME  # Cloud SQL Postgres database anem
+          valueFrom:
+            secretKeyRef:
+              name: airflow-db
+              key: database
+        - name: TAP_SLACK_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: tap_slack_token
+        - name: TAP_ZOOM_JWT
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: tap_zoom_jwt
+        - name: SF_USER
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: sf_user
+        - name: SF_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: sf_password
+        - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
+          valueFrom:
+            secretKeyRef:
+              name: tap-secrets
+              key: airflow_conn
+        - name: ADMIN_SDK_KEY
+          valueFrom:
+            secretKeyRef:
+              name: admin-sdk
+              key: service_key
+        - name: AIRFLOW__CORE__DAGBAG_IMPORT_TIMEOUT  # Set environment variable
+          value: "120"
+        - name: AIRFLOW__CORE__EXECUTOR  # Set environment variable
+          value: "LocalExecutor"
+      - name: cloud-sql-proxy  # Cloud SQL Proxy Sidecar
+        # It is recommended to use the latest version of the Cloud SQL proxy
+        # Make sure to update on a regular schedule!
+        image: gcr.io/cloudsql-docker/gce-proxy
+        command:
+          - "/cloud_sql_proxy"
+
+          # If connecting from a VPC-native GKE cluster, you can use the
+          # following flag to have the proxy connect over private IP
+          # - "-ip_address_types=PRIVATE"
+
+          # Replace DB_PORT with the port the proxy should listen on
+          # Defaults: MySQL: 3306, Postgres: 5432, SQLServer: 1433
+          # Copy and paste your SQL instance connection name into the code below
+          - "-instances=<your-projectid-123456:zone:instance-name>=tcp:5432"
+
+          # This flag specifies where the service account key can be found
+          - "-credential_file=/secrets/service_account.json"  # The service account key for Cloud SQL Proxy
+        securityContext:
+          # The default Cloud SQL proxy image runs as the
+          # "nonroot" user and group (uid: 65532) by default.
+          runAsNonRoot: true
+        volumeMounts:
+        - name: k8s-sql-volume
+          mountPath: /secrets/
+          readOnly: true
+      volumes:
+      - name: k8s-sql-volume
+        secret:
+          secretName: cloud-sql  # The secret that contains service_account.json for Cloud SQL Proxy
+
+```
