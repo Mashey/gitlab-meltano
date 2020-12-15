@@ -222,17 +222,23 @@ https://cloud.google.com/kubernetes-engine/docs/quickstart#choosing_a_shell
 
 Select `Local shell`, and then run the following command:
 
-`gcloud components install kubectl`
+```sh
+gcloud components install kubectl
+```
 
 #### Create a GKE Cluster
 
 https://cloud.google.com/kubernetes-engine/docs/quickstart#create_cluster
 
-`gcloud container clusters create cluster-name --num-nodes=1`
+```sh
+gcloud container clusters create cluster-name --num-nodes=1
+```
 
 Authenticate the Cluster
 
-`gcloud container clusters get-credentials cluster-name`
+```sh
+gcloud container clusters get-credentials cluster-name
+```
 
 ### Connect from GKE to Cloud SQL
 
@@ -240,16 +246,18 @@ The following guide section explains the process to create a service account key
 
 https://cloud.google.com/sql/docs/postgres/connect-kubernetes-engine#service-account-key-file
 
-* When creating the Kubernetes secret use the `--namespace` flag
+* When creating Kubernetes secrets use the `--namespace` flag
 
 ```text
+# Example
+
 kubectl create secret generic <YOUR-DB-SECRET> --namespace=gitlab \
   --from-literal=username=<YOUR-DATABASE-USER> \
   --from-literal=password=<YOUR-DATABASE-PASSWORD> \
   --from-literal=database=<YOUR-DATABASE-NAME>
 ```
 
-* Ensure that the service account you create (or use) has Cloud SQL Admin API IAM access and the Editor role
+* Ensure that the service account you create (or use) has Cloud SQL Admin API IAM access with the Editor role
 * The `key.json` created for the service account will be saved as a Kubernetes secret
   * The `key.json` file should be stored in a secure location in case it needs to be accessed in the future
 * The `gitlab-app.yaml` file stores the value of `key.json` to the environment variable `ADMIN_SDK_KEY`
@@ -276,8 +284,11 @@ Create the other necessary Kubernetes [secrets](https://cloud.google.com/kuberne
 
 All secrets must be created for the `gitlab` namespace
 
-* Example
-  * `kubectl create secret generic my-secret-name --from-literal user=admin --namespace=gitlab`
+```sh
+# Example
+
+kubectl create secret generic my-secret-name --from-literal user=admin --namespace=gitlab
+```
 
 #### Create Additional Secrets
 
@@ -300,17 +311,23 @@ All secrets must be created for the `gitlab` namespace
   * `service_key`
     * The service account key created during the [Gmail Setup](#gmail-setup)
 
-
 ## Deploy Meltano to Kubernetes
 
-Upload the Docker image to Container Registry.
+To deploy to Kubernetes upload the Docker image to Container Registry.
 
-* Tag the image
-  * `docker tag img_name gcr.io/[PROJECT-ID]/img_name:tag1`
-* Push the image to Google Container Registry
-  * `docker push gcr.io/[PROJECT-ID]/img_name:tag1`
+Step 1 - Tag the image:
 
-The `gitlab-app.yaml` Kubernetes deployment file. To deploy run:
+```sh
+docker tag img_name gcr.io/[PROJECT-ID]/img_name:tag
+```
+
+Step 2 - Push the image to Google Container Registry:
+
+```sh
+docker push gcr.io/[PROJECT-ID]/img_name:tag1
+```
+
+The `gitlab-app.yaml` is used to create the Kubernetes deployment. To create a deployment on your Kubernetes cluster run:
 
 `kubectl apply -f ./gitlab-app.yaml`
 
