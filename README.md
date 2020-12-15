@@ -9,6 +9,17 @@
   * [Running the Scheduler](#running-the-scheduler)
 * [Preparing Meltano for Production](#preparing-meltano-for-production)
   * [Dockerize the Project](#dockerize-the-project)
+  * [Google Cloud Platform Setup](#google-cloud-platform-setup)
+    * [Admin SDK API :: Reports API](#admin-sdk-api---reports-api)
+    * [Cloud SQL and Cloud SQL Admin](#cloud-sql-and-cloud-sql-admin)
+    * [Container Registry](#container-registry)
+      * [Kubernetes Engine](#kubernetes-engine)
+      * [Install `kubectl` for Google Cloud SDK](#install-kubectl-for-google-cloud-sdk)
+      * [Create a GKE Cluster](create-a-gke-cluster)
+    * [Connect from GKE to Cloud SQL](#connect-from-gke-to-cloud-sql)
+    * [Create Kubernetes Secrets](#create-kubernetes-secrets)
+      * [Create Additional Secrets](#create-additional-secrets)
+  * [Deploy Meltano to Kubernetes](#deploy-meltano-to-kubernetes)
 
 # Preparing Meltano
 
@@ -160,7 +171,7 @@ This section covers the necessary steps to create a GCP Production environment f
 * Additional API dependencies will be created as necessary by the services listed above
   * This is typical behavior for GCP APIs
 
-### Admin SDK API  :: Reports API
+### Admin SDK API :: Reports API
 
 The Admin SDK API and Reports API should already be enabled from the [Gmail Setup](#gmail-setup) section of this guide. If it is not enabled, please return to [Gmail Setup](#gmail-setup) and complete the setup process.
 
@@ -296,7 +307,7 @@ kubectl create secret generic my-secret-name --from-literal user=admin --namespa
   * `tap-secrets`
 * Keys
   * `airflow_conn`
-    * `<postgresql://username:password@localhost:5432/mydatabase>`
+    * `postgresql://username:password@localhost:5432/mydatabase`
   * `sf_password`
     * Snowflake instance password
   * `sf_user`
@@ -349,8 +360,8 @@ spec:
       labels:
         app: gitlab
     spec:
-      serviceAccount: k8s-sa  # Service account created in the section 'Connect From GKE to Cloud SQL'
-      serviceAccountName: k8s-sa  # Service account created in the section 'Connect From GKE to Cloud SQL'
+      serviceAccount: k8s-sa  # Replace with service account name created in the section 'Connect From GKE to Cloud SQL'
+      serviceAccountName: k8s-sa  # Replace with service account created in the section 'Connect From GKE to Cloud SQL'
       containers:
       - name: gitlab
         image: gcr.io/<your-projectid-123456>/<image-name:image-tag>  #  The Gitlab-Meltano image
