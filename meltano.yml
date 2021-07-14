@@ -33,6 +33,19 @@ plugins:
     namespace: tap_gmail
     pip_url: git+https://github.com/Mashey/tap-gmail.git
     executable: tap-gmail
+  - name: tap-xactly
+    namespace: tap_xactly
+    pip_url: git+https://github.com/Mashey/test-tap-xactly.git#subdirectory=tap-xactly
+    executable: tap-xactly
+    capabilities:
+    - catalog
+    - discover
+    - state
+    settings:
+    - name: user
+    - name: password
+    - name: client_id
+    - name: consumer
   loaders:
   - name: target-snowflake
     variant: meltano
@@ -49,21 +62,27 @@ plugins:
   - name: airflow
     pip_url: git+https://gitlab.com/meltano/files-airflow.git
 schedules:
-- name: slack-to-snowflake
-  extractor: tap-slack
+# - name: slack-to-snowflake
+#   extractor: tap-slack
+#   loader: target-snowflake
+#   transform: skip
+#   interval: '@daily'
+#   start_date: 2020-12-03
+# - name: zoom-to-snowflake
+#   extractor: tap-zoom
+#   loader: target-snowflake
+#   transform: skip
+#   interval: '@daily'
+#   start_date: 2020-12-03
+# - name: gmail-to-snowflake
+#   extractor: tap-gmail
+#   loader: target-snowflake
+#   transform: skip
+#   interval: '@daily'
+#   start_date: 2020-12-03
+- name: xactly-to-snowflake
+  extractor: tap-xactly
   loader: target-snowflake
   transform: skip
   interval: '@daily'
-  start_date: 2020-12-03
-- name: zoom-to-snowflake
-  extractor: tap-zoom
-  loader: target-snowflake
-  transform: skip
-  interval: '@daily'
-  start_date: 2020-12-03
-- name: gmail-to-snowflake
-  extractor: tap-gmail
-  loader: target-snowflake
-  transform: skip
-  interval: '@daily'
-  start_date: 2020-12-03
+  start_date: 2021-07-13
