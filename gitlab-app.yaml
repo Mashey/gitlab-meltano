@@ -2,19 +2,19 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gitlab-production
-  namespace: gitlab
+  namespace: tap_xactly
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gitlab
+      app: tap-xactly
   template:
     metadata:
       labels:
-        app: gitlab
+        app: tap-xactly
     spec:
-      serviceAccount: k8s-sa
-      serviceAccountName: k8s-sa
+      serviceAccount: cloud-sql
+      serviceAccountName: cloud-sql
       containers:
       - name: gitlab
         image: gcr.io/playground-305019/gitlab-gke-demo:production
@@ -36,20 +36,20 @@ spec:
               name: airflow-db
               key: database
         - name: MELTANO_DATABASE_URI
-              valueFrom:
-                secretKeyRef:
-                  name: meltano
-                  key: db_connection
-        - name: TAP_SLACK_TOKEN
           valueFrom:
             secretKeyRef:
-              name: tap-secrets
-              key: tap_slack_token
-        - name: TAP_ZOOM_JWT
-          valueFrom:
-            secretKeyRef:
-              name: tap-secrets
-              key: tap_zoom_jwt
+              name: meltano
+              key: db_connection
+        # - name: TAP_SLACK_TOKEN
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: tap-secrets
+        #       key: tap_slack_token
+        # - name: TAP_ZOOM_JWT
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: tap-secrets
+        #       key: tap_zoom_jwt
         - name: TAP_XACTLY_USER
           valueFrom:
             secretKeyRef:
@@ -81,10 +81,10 @@ spec:
               name: tap-secrets
               key: sf_password
         - name: AIRFLOW__CORE__SQL_ALCHEMY_CONN
-              valueFrom:
-                secretKeyRef:
-                  name: airflow
-                  key: db_connection
+          valueFrom:
+            secretKeyRef:
+              name: airflow
+              key: db_connection
         - name: ADMIN_SDK_KEY
           valueFrom:
             secretKeyRef:
@@ -105,7 +105,7 @@ spec:
 
           # Replace DB_PORT with the port the proxy should listen on
           # Defaults: MySQL: 3306, Postgres: 5432, SQLServer: 1433
-          - "-instances=playground-305019:us-central1:gitlab=tcp:5432"
+          - "-instances=playground-305019:us-central1:meltano=tcp:5432"
 
           # This flag specifies where the service account key can be found
           - "-credential_file=/secrets/service_account.json"
