@@ -17,7 +17,7 @@ spec:
       serviceAccountName: cloud-sql
       containers:
       - name: gitlab
-        image: gcr.io/playground-305019/gitlab-gke-demo:production
+        image: gcr.io/gitlab-analysis/gitlab-meltano:production
         imagePullPolicy: Always
         env:
         - name: DB_USER
@@ -38,7 +38,7 @@ spec:
         - name: MELTANO_DATABASE_URI
           valueFrom:
             secretKeyRef:
-              name: meltano
+              name: meltano-db
               key: db_connection
         # - name: TAP_SLACK_TOKEN
         #   valueFrom:
@@ -105,7 +105,7 @@ spec:
 
           # Replace DB_PORT with the port the proxy should listen on
           # Defaults: MySQL: 3306, Postgres: 5432, SQLServer: 1433
-          - "-instances=playground-305019:us-central1:meltano=tcp:5432"
+          - "-instances=gitlab-analysis:us-west1:meltano=tcp:5432"
 
           # This flag specifies where the service account key can be found
           - "-credential_file=/secrets/service_account.json"
